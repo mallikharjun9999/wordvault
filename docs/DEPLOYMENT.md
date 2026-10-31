@@ -1,0 +1,12 @@
+# Deployment readiness (NOT deployed — nothing has been published anywhere)
+
+Checklist for later. Test every item locally first.
+- **Env (production):** `NODE_ENV=production`, strong unique `JWT_SECRET`, `COOKIE_SECURE` true (implied), `CLIENT_URL` = exact HTTPS frontend origin, `MONGODB_URI`, `TRUST_PROXY=1` behind a proxy, optional `AI_*`.
+- **HTTPS is mandatory** (Secure cookies). Easiest, safest topology: serve frontend and API from the **same origin** (reverse proxy `/api` → Node, static `client/dist` for everything else). If they are on different sites, `SameSite=Lax` cookies will not be sent on cross-site XHR; you would need `SameSite=None; Secure` plus a re-review of CSRF — not implemented.
+- **Frontend:** `npm run build` → `client/dist` (static; SPA fallback to `index.html`). `VITE_API_URL` only if the API is on another origin.
+- **Backend:** `npm start` (Node >=22.9; load env from your platform, not a committed file). Stateless — scale horizontally; the in-process generation de-dupe is per instance (the DB unique index is the real guard); rate-limit counters are per instance (use a shared store if scaling out).
+- **MongoDB:** replica set (Atlas M0 free tier is fine for testing; has storage/connection limits and no SLA). Create a **least-privilege** user (`readWrite` on the app DB only), restrict network access to the app host, enable TLS. Run `npm run db:init` once to create indexes (`autoIndex` is off in production). Schema changes are additive; write a one-off script in `server/scripts` for any data migration and back up first.
+- **Backups:** `scripts/backup.sh` (mongodump) on a schedule + test restores; Atlas has its own snapshots on paid tiers.
+- **AI cost/limits:** per-user cap `AI_GENERATIONS_PER_HOUR`, no automatic retries, 60 s timeout. Set a spending limit at the provider; provider rate limits surface as `PROVIDER_RATE_LIMITED`. Free tiers change — don't assume permanent free usage.
+- **Hardening still to do:** email verification & password reset, login lockout per account (only IP rate-limit exists), shared rate-limit store, structured logging/monitoring (current logging is minimal and secret-free), dependency audit in CI (`npm audit` was clean at build time), CSP tuning on the static host.
+- **Pre-flight:** `npm test`, `npm run build`, `GET /api/health`, confirm cookies are `HttpOnly; Secure`, confirm CORS rejects other origins, confirm no `.env` in the repo.
