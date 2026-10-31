@@ -5,9 +5,15 @@ import { unauthorized } from '../utils/AppError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const COOKIE_NAME = 'wv_token';
+
 export const cookieOptions = () => ({
-  httpOnly: true, secure: config.cookieSecure, sameSite: 'lax', path: '/', maxAge: config.sessionDays * 86400000,
+  httpOnly: true,
+  secure: config.cookieSecure,
+  sameSite: config.isProd ? 'none' : 'lax',
+  path: '/',
+  maxAge: config.sessionDays * 86400000,
 });
+
 export const signToken = (user) =>
   jwt.sign({ sub: String(user._id), tv: user.tokenVersion }, config.jwtSecret, { expiresIn: `${config.sessionDays}d`, algorithm: 'HS256' });
 
