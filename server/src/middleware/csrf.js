@@ -4,7 +4,7 @@ import { forbidden } from '../utils/AppError.js';
 
 const allowedOrigins = new Set([
   ...(config.clientUrls || []),
-  'https://wordvaultz.vercel.app'
+  'https://wordschamber.vercel.app'
 ]);
 
 export function csrfGuard(req, _res, next) {
